@@ -8,10 +8,18 @@
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0a0a; font-family: 'Segoe UI', Arial, sans-serif; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: #0a0a0a; font-family: 'Segoe UI', Arial, sans-serif;
+      touch-action: none; /* prevent browser scroll/zoom from stealing swipe events */
+    }
 
-    /* ── A-Frame canvas always fills the screen ────────────── */
-    a-scene { width: 100% !important; height: 100% !important; }
+    /*
+      A-Frame without the `embedded` attribute positions its canvas as
+      position:fixed; top:0; left:0; width:100%; height:100% automatically.
+      Do NOT set width/height here — let A-Frame manage it so resize events
+      are handled correctly on every screen size.
+    */
 
     /* ── Scene selector — sits on top of the canvas ─────────── */
     #scene-selector {
@@ -128,6 +136,7 @@
       font-size: 0.78rem; border: 1px solid rgba(245,197,24,0.3);
       white-space: nowrap; backdrop-filter: blur(6px);
       font-style: italic; letter-spacing: 0.5px;
+      pointer-events: none; /* never intercept touch/mouse events */
     }
     #scene-label.visible { display: block; }
 
@@ -136,7 +145,7 @@
       display: none; position: fixed; bottom: 5rem; left: 50%;
       transform: translateX(-50%); z-index: 7000;
       color: rgba(255,255,255,0.55); font-size: 0.72rem;
-      white-space: nowrap; pointer-events: none;
+      white-space: nowrap; pointer-events: none; /* never intercept events */
       animation: fadeHint 3s ease 1.5s forwards;
     }
     #look-hint.visible { display: block; }
@@ -152,8 +161,7 @@
 <a-scene
   vr-mode-ui="enabled: false"
   loading-screen="enabled: false"
-  renderer="antialias: true; colorManagement: true"
-  embedded>
+  renderer="antialias: true; colorManagement: true">
 
   <!-- ── ASSETS ─────────────────────────────────────────────── -->
   <a-assets timeout="60000">
@@ -283,7 +291,8 @@
   -->
   <a-entity
     camera="fov: 50; near: 0.1"
-    look-controls="reverseMouseDrag: false; touchEnabled: true; magicWindowTrackingEnabled: true"
+    look-controls="reverseMouseDrag: false; touchEnabled: true; magicWindowTrackingEnabled: false; pointerLockEnabled: false"
+    wasd-controls="enabled: false"
     position="0 1.6 0">
 
     <!-- Touch-tap cursor for mobile; gaze-fuse for VR -->
