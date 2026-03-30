@@ -164,20 +164,14 @@
     <audio id="audio-caracol"   src="./assets/audio/city_bogota.mp3"    preload="auto" loop></audio>
   </a-assets>
 
-  <!-- ── TWO DEDICATED SKY SPHERES — one per scene ─────────── -->
+  <!-- ── SINGLE SKY SPHERE — src swapped on scene load ────── -->
   <!--
-    FIX: Using two separate <a-sky> elements with visible toggle
-    is far more reliable than swapping src on a single <a-sky>.
-    Both start invisible; only the active scene's sky is shown.
+    Single <a-sky> is reliable when the scene is always in the DOM
+    (no display:none on <a-scene>). Swapping src on a pre-loaded
+    asset ID updates instantly without re-downloading.
+    Starts invisible until the user selects a scene.
   -->
-  <a-sky id="sky-serpiente"
-         src="#img-serpiente"
-         visible="false"
-         rotation="0 -60 0">
-  </a-sky>
-
-  <a-sky id="sky-caracol"
-         src="#img-caracol"
+  <a-sky id="sky-main"
          visible="false"
          rotation="0 -90 0">
   </a-sky>
@@ -288,7 +282,7 @@
     look-controls lets the user drag/tilt to explore the 360°.
   -->
   <a-entity
-    camera="fov: 60; near: 0.1"
+    camera="fov: 50; near: 0.1"
     look-controls="reverseMouseDrag: false; touchEnabled: true; magicWindowTrackingEnabled: true"
     position="0 1.6 0">
 
@@ -382,10 +376,13 @@ const UIManager = (() => {
   const lookHint     = document.getElementById('look-hint');
   const ambientEnt   = document.getElementById('ambient-sound');
 
-  // Sky elements (one per scene — toggled, never src-swapped)
-  const skies = {
-    serpiente: document.getElementById('sky-serpiente'),
-    caracol:   document.getElementById('sky-caracol'),
+  // Single sky sphere — src swapped on scene load
+  const skyMain = document.getElementById('sky-main');
+
+  // Image asset IDs by scene
+  const SKY_SRC = {
+    serpiente: '#img-serpiente',
+    caracol:   '#img-caracol',
   };
 
   // Hotspot group elements
@@ -416,10 +413,9 @@ const UIManager = (() => {
     // 1. Hide the selector overlay
     sel.classList.add('hidden');
 
-    // 2. Activate the correct sky; deactivate the other
-    Object.entries(skies).forEach(([key, el]) => {
-      el.setAttribute('visible', key === name);
-    });
+    // 2. Swap sky texture and make it visible
+    skyMain.setAttribute('src', SKY_SRC[name]);
+    skyMain.setAttribute('visible', true);
 
     // 3. Activate the correct hotspot group
     Object.entries(spots).forEach(([key, el]) => {
@@ -483,8 +479,8 @@ const UIManager = (() => {
     audioReady = false; audioMuted = false;
     hudAudioBtn.textContent = '🔊 Mute';
 
-    // Hide both skies and hotspot groups
-    Object.values(skies).forEach(el => el.setAttribute('visible', false));
+    // Hide sky and hotspot groups
+    skyMain.setAttribute('visible', false);
     Object.values(spots).forEach(el => el.setAttribute('visible', false));
 
     // Restore overlay
