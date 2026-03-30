@@ -8,299 +8,302 @@
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     html, body {
       width: 100%; height: 100%; overflow: hidden;
       background: #0a0a0a; font-family: 'Segoe UI', Arial, sans-serif;
-      touch-action: none; /* prevent browser scroll/zoom from stealing swipe events */
+      /* Prevent browser scroll/pinch-zoom from stealing touch events */
+      touch-action: none;
     }
 
     /*
-      A-Frame without the `embedded` attribute positions its canvas as
-      position:fixed; top:0; left:0; width:100%; height:100% automatically.
-      Do NOT set width/height here — let A-Frame manage it so resize events
-      are handled correctly on every screen size.
+      Without `embedded`, A-Frame sets its canvas to position:fixed, 100vw×100vh.
+      We force touch-action:none on the canvas so look-controls receives all
+      touchmove events uninterrupted on mobile.
     */
+    canvas { touch-action: none !important; display: block; }
 
-    /* ── Scene selector — sits on top of the canvas ─────────── */
+    /* ── SCENE SELECTOR ─────────────────────────────────────── */
     #scene-selector {
       position: fixed; inset: 0; z-index: 9999;
       background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 55%, #16213e 100%);
       display: flex; flex-direction: column;
-      align-items: center; justify-content: center; gap: 1.8rem;
-      padding: 1.5rem;
-      transition: opacity 0.4s;
+      align-items: center; justify-content: center;
+      gap: 1.2rem; padding: 1.2rem;
+      overflow-y: auto;
     }
     #scene-selector.hidden { display: none; }
 
     #scene-selector h1 {
       color: #f5c518;
-      font-size: clamp(1.4rem, 4vw, 2.2rem);
+      font-size: clamp(1.2rem, 5vw, 2rem);
       text-align: center;
       text-shadow: 0 0 24px rgba(245,197,24,0.5);
       letter-spacing: 1px;
     }
-    #scene-selector p.subtitle {
-      color: #aaa; font-size: 0.92rem; text-align: center; max-width: 400px; line-height: 1.5;
+    #scene-selector .subtitle {
+      color: #aaa; font-size: clamp(0.78rem, 2.5vw, 0.9rem);
+      text-align: center; max-width: 360px; line-height: 1.5;
+    }
+
+    .audio-notice {
+      background: rgba(245,197,24,0.1);
+      border: 1px solid rgba(245,197,24,0.4);
+      border-radius: 10px; padding: 0.55rem 1rem;
+      color: #f5c518;
+      font-size: clamp(0.72rem, 2vw, 0.8rem);
+      text-align: center; max-width: 360px;
     }
 
     .movie-cards {
-      display: flex; flex-wrap: wrap; gap: 1.4rem;
-      justify-content: center; width: 100%; max-width: 800px;
+      display: flex; flex-wrap: wrap; gap: 1rem;
+      justify-content: center; width: 100%; max-width: 720px;
     }
 
     .movie-card {
       background: rgba(255,255,255,0.05);
       border: 1.5px solid rgba(245,197,24,0.3);
-      border-radius: 18px; padding: 1.6rem 1.8rem;
-      cursor: pointer; flex: 1 1 270px; max-width: 330px;
-      transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+      border-radius: 18px; padding: 1.3rem 1.5rem;
+      cursor: pointer; flex: 1 1 250px; max-width: 310px;
       text-align: center; user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
-    .movie-card:hover, .movie-card:focus {
-      transform: translateY(-7px);
-      border-color: #f5c518;
-      box-shadow: 0 14px 36px rgba(245,197,24,0.28);
-      outline: none;
+    /* Desktop hover */
+    @media (hover: hover) {
+      .movie-card:hover {
+        border-color: #f5c518;
+        box-shadow: 0 12px 32px rgba(245,197,24,0.25);
+        transform: translateY(-5px);
+      }
     }
-    .movie-card .icon { font-size: 3rem; margin-bottom: 0.65rem; display: block; }
-    .movie-card h2  { color: #f5c518; font-size: 1.05rem; margin-bottom: 0.3rem; font-style: italic; }
-    .movie-card .year { color: #888; font-size: 0.78rem; margin-bottom: 0.6rem; }
-    .movie-card p   { color: #ccc; font-size: 0.84rem; line-height: 1.55; }
+    /* Mobile tap feedback */
+    .movie-card:active { transform: scale(0.97); border-color: #f5c518; }
+
+    .movie-card .icon { font-size: 2.4rem; margin-bottom: 0.4rem; display: block; }
+    .movie-card h2    { color: #f5c518; font-size: clamp(0.88rem, 3vw, 1rem); margin-bottom: 0.2rem; font-style: italic; }
+    .movie-card .year { color: #888; font-size: clamp(0.68rem, 2vw, 0.76rem); margin-bottom: 0.45rem; }
+    .movie-card p     { color: #ccc; font-size: clamp(0.76rem, 2.2vw, 0.82rem); line-height: 1.5; }
 
     .btn-enter {
-      margin-top: 1rem; display: inline-block;
+      margin-top: 0.8rem; display: inline-block;
       background: #f5c518; color: #000; font-weight: 700;
-      border: none; border-radius: 9px; padding: 0.55rem 1.4rem;
-      font-size: 0.84rem; cursor: pointer; transition: background 0.2s, transform 0.15s;
-      pointer-events: none; /* card div handles the click */
+      border-radius: 9px; padding: 0.5rem 1.2rem;
+      font-size: clamp(0.76rem, 2.2vw, 0.82rem);
+      pointer-events: none; /* parent card handles click */
     }
-    .movie-card:hover .btn-enter { background: #e6b800; }
 
-    /* ── Info card overlay ───────────────────────────────────── */
+    /* ── INFO CARD OVERLAY ──────────────────────────────────── */
     #info-overlay {
       display: none; position: fixed; inset: 0; z-index: 8000;
-      background: rgba(0,0,0,0.72);
-      align-items: center; justify-content: center; padding: 1rem;
+      background: rgba(0,0,0,0.75);
+      align-items: center; justify-content: center;
+      padding: 1rem;
     }
     #info-overlay.visible { display: flex; }
 
     #info-card {
       background: linear-gradient(155deg, #1a1a2e, #0f172a);
       border: 1.5px solid rgba(245,197,24,0.5);
-      border-radius: 22px; padding: 2rem;
-      max-width: 460px; width: 100%; color: #eee;
+      border-radius: 20px; padding: 1.5rem;
+      max-width: 440px; width: 100%; color: #eee;
       position: relative;
-      box-shadow: 0 24px 64px rgba(0,0,0,0.8);
-      max-height: 82vh; overflow-y: auto;
+      box-shadow: 0 20px 56px rgba(0,0,0,0.85);
+      max-height: 80vh; overflow-y: auto;
     }
     #info-card .card-badge {
       display: inline-block; background: #f5c518; color: #000;
-      font-size: 0.68rem; font-weight: 700; border-radius: 6px;
-      padding: 0.2rem 0.75rem; margin-bottom: 0.75rem;
+      font-size: 0.67rem; font-weight: 700; border-radius: 6px;
+      padding: 0.18rem 0.7rem; margin-bottom: 0.6rem;
       text-transform: uppercase; letter-spacing: 1.2px;
     }
-    #info-card h2 { color: #f5c518; font-size: 1.15rem; margin-bottom: 0.65rem; line-height: 1.35; }
-    #info-card p  { font-size: 0.88rem; line-height: 1.7; color: #bbb; }
+    #info-card h2 { color: #f5c518; font-size: clamp(0.95rem, 3vw, 1.1rem); margin-bottom: 0.5rem; line-height: 1.3; }
+    #info-card p  { font-size: clamp(0.8rem, 2.2vw, 0.86rem); line-height: 1.65; color: #bbb; }
     .card-close {
-      position: absolute; top: 1rem; right: 1rem;
+      position: absolute; top: 0.85rem; right: 0.85rem;
       background: rgba(255,255,255,0.08); border: none;
-      color: #fff; font-size: 1.1rem; cursor: pointer;
-      border-radius: 50%; width: 32px; height: 32px;
+      color: #fff; font-size: 1rem; cursor: pointer;
+      border-radius: 50%; width: 38px; height: 38px; /* large tap target */
       display: flex; align-items: center; justify-content: center;
-      transition: background 0.2s;
+      -webkit-tap-highlight-color: transparent;
     }
-    .card-close:hover { background: rgba(245,197,24,0.35); }
+    .card-close:active { background: rgba(245,197,24,0.35); }
 
-    /* ── HUD ─────────────────────────────────────────────────── */
+    /* ── HUD ────────────────────────────────────────────────── */
     #hud {
-      display: none; position: fixed; bottom: 1.4rem; left: 50%;
+      display: none; position: fixed; bottom: 1.2rem; left: 50%;
       transform: translateX(-50%); z-index: 7000;
-      gap: 0.8rem; flex-wrap: wrap; justify-content: center;
+      gap: 0.7rem; flex-wrap: wrap; justify-content: center;
     }
     #hud.visible { display: flex; }
 
     .hud-btn {
-      background: rgba(0,0,0,0.72); border: 1px solid rgba(245,197,24,0.5);
-      color: #f5c518; padding: 0.55rem 1.2rem; border-radius: 30px;
-      font-size: 0.8rem; cursor: pointer; transition: all 0.2s;
+      background: rgba(0,0,0,0.78); border: 1px solid rgba(245,197,24,0.5);
+      color: #f5c518; padding: 0 1.2rem;
+      border-radius: 30px; font-size: clamp(0.74rem, 2.2vw, 0.8rem);
+      cursor: pointer; min-height: 44px; min-width: 80px; /* 44px mobile tap target */
       backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+      -webkit-tap-highlight-color: transparent;
     }
-    .hud-btn:hover { background: rgba(245,197,24,0.18); border-color: #f5c518; }
+    .hud-btn:active { background: rgba(245,197,24,0.2); border-color: #f5c518; }
 
-    /* ── Scene label (top center when inside a scene) ────────── */
+    /* ── SCENE LABEL (non-interactive, never blocks touches) ── */
     #scene-label {
-      display: none; position: fixed; top: 1.1rem; left: 50%;
+      display: none; position: fixed; top: 1rem; left: 50%;
       transform: translateX(-50%); z-index: 7000;
       background: rgba(0,0,0,0.65); color: #f5c518;
-      padding: 0.4rem 1.2rem; border-radius: 20px;
-      font-size: 0.78rem; border: 1px solid rgba(245,197,24,0.3);
+      padding: 0.32rem 0.9rem; border-radius: 20px;
+      font-size: clamp(0.68rem, 2vw, 0.76rem);
+      border: 1px solid rgba(245,197,24,0.3);
       white-space: nowrap; backdrop-filter: blur(6px);
-      font-style: italic; letter-spacing: 0.5px;
-      pointer-events: none; /* never intercept touch/mouse events */
+      font-style: italic; pointer-events: none;
     }
     #scene-label.visible { display: block; }
 
-    /* ── Hint: look around ───────────────────────────────────── */
+    /* ── LOOK-AROUND HINT ───────────────────────────────────── */
     #look-hint {
-      display: none; position: fixed; bottom: 5rem; left: 50%;
+      display: none; position: fixed; bottom: 4.2rem; left: 50%;
       transform: translateX(-50%); z-index: 7000;
-      color: rgba(255,255,255,0.55); font-size: 0.72rem;
-      white-space: nowrap; pointer-events: none; /* never intercept events */
-      animation: fadeHint 3s ease 1.5s forwards;
+      color: rgba(255,255,255,0.75); font-size: clamp(0.7rem, 2vw, 0.76rem);
+      white-space: nowrap; pointer-events: none;
+      background: rgba(0,0,0,0.5); padding: 0.3rem 0.9rem; border-radius: 14px;
+      animation: fadeHint 5s ease 1.5s forwards;
     }
     #look-hint.visible { display: block; }
-    @keyframes fadeHint { 0%{opacity:1} 80%{opacity:1} 100%{opacity:0} }
+    @keyframes fadeHint { 0%{opacity:1} 65%{opacity:1} 100%{opacity:0} }
   </style>
 </head>
 <body>
 
 <!-- ═══════════════════════════════════════════════════════════
-     A-FRAME SCENE — always in DOM so the canvas initializes
-     properly. The overlay sits on top when no scene is active.
+     A-FRAME SCENE
+     - No `embedded` attr: A-Frame manages canvas as position:fixed, 100vw×100vh.
+       This auto-adjusts to any screen size and resize events.
+     - <a-entity> sphere replaces <a-sky>: material.src can be swapped reliably
+       via setAttribute. <a-sky> src-swapping is unreliable with preloaded assets.
 ════════════════════════════════════════════════════════════ -->
 <a-scene
   vr-mode-ui="enabled: false"
   loading-screen="enabled: false"
   renderer="antialias: true; colorManagement: true">
 
-  <!-- ── ASSETS ─────────────────────────────────────────────── -->
+  <!-- Preload images only; audio is handled by native HTMLAudioElement -->
   <a-assets timeout="60000">
     <img id="img-serpiente" src="./assets/img/amazon_360.jpg"  crossorigin="anonymous" />
     <img id="img-caracol"   src="./assets/img/bogota_360.jpg"  crossorigin="anonymous" />
     <img id="hotspot-icon"  src="./assets/img/hotspot.svg"     crossorigin="anonymous" />
-    <audio id="audio-serpiente" src="./assets/audio/amazon_jungle.mp3"  preload="auto" loop></audio>
-    <audio id="audio-caracol"   src="./assets/audio/city_bogota.mp3"    preload="auto" loop></audio>
   </a-assets>
 
-  <!-- ── SINGLE SKY SPHERE — src swapped on scene load ────── -->
   <!--
-    Single <a-sky> is reliable when the scene is always in the DOM
-    (no display:none on <a-scene>). Swapping src on a pre-loaded
-    asset ID updates instantly without re-downloading.
-    Starts invisible until the user selects a scene.
-  -->
-  <a-sky id="sky-main"
-         visible="false"
-         rotation="0 -90 0">
-  </a-sky>
-
-  <!-- ── SOUND entity (src swapped on scene load) ───────────── -->
-  <a-entity id="ambient-sound"></a-entity>
-
-  <!-- ══════════════════════════════════════════════════════════
-       HOTSPOTS — El abrazo de la serpiente
-       Spread around the user (not all in front) so navigation
-       feels intentional and immersive.
-  ══════════════════════════════════════════════════════════ -->
-  <a-entity id="hotspots-serpiente" visible="false">
-
-    <!-- Front — Synopsis -->
-    <a-image class="hotspot"  src="#hotspot-icon"
-      position="0 1.6 -3.5"  width="0.5" height="0.5"  look-at="[camera]"
-      animation="property:scale; to:1.18 1.18 1.18; dur:900; loop:true; dir:alternate; easing:easeInOutSine"
-      data-badge="Synopsis"
-      data-title="El abrazo de la serpiente (2015)"
-      data-body="Directed by Ciro Guerra, this black-and-white film follows two parallel journeys through the Colombian Amazon: a German ethnobotanist in 1909 and an American scientist in the 1940s. Both are guided by Karamakate, the last survivor of his tribe, in a search for a sacred healing plant called yakruna. The film was Colombia's first Oscar nomination for Best Foreign Language Film."
-      onclick="UIManager.openCard(this)">
-    </a-image>
-
-    <!-- Right — Production -->
-    <a-image class="hotspot"  src="#hotspot-icon"
-      position="3.5 1.6 0"  width="0.5" height="0.5"  look-at="[camera]"
-      animation="property:scale; to:1.18 1.18 1.18; dur:1100; loop:true; dir:alternate; easing:easeInOutSine"
-      data-badge="Production"
-      data-title="Black & White: An Artistic Choice"
-      data-body="Ciro Guerra chose to shoot in black and white to evoke the archival photographs and ethnographic records of the early 20th-century Amazon expeditions. This visual style creates a timeless quality that blurs the boundary between past and present, myth and reality. The film was shot in actual indigenous territories in Colombia and Venezuela, giving it an authentic and raw visual texture."
-      onclick="UIManager.openCard(this)">
-    </a-image>
-
-    <!-- Left — Historical context -->
-    <a-image class="hotspot"  src="#hotspot-icon"
-      position="-3.5 1.6 0"  width="0.5" height="0.5"  look-at="[camera]"
-      animation="property:scale; to:1.18 1.18 1.18; dur:950; loop:true; dir:alternate; easing:easeInOutSine"
-      data-badge="Historical Context"
-      data-title="The Rubber Boom & Colonial Violence"
-      data-body="The film depicts the devastating impact of the rubber extraction boom (late 1800s–early 1900s) on Amazonian indigenous peoples. Rubber companies enslaved and massacred entire communities. The character of Karamakate represents a culture nearly destroyed by colonialism. The film uses the journey narrative to expose how Western 'scientific' exploration was deeply entangled with exploitation."
-      onclick="UIManager.openCard(this)">
-    </a-image>
-
-    <!-- Behind — Awards -->
-    <a-image class="hotspot"  src="#hotspot-icon"
-      position="0 1.6 3.5"  width="0.5" height="0.5"  look-at="[camera]"
-      animation="property:scale; to:1.18 1.18 1.18; dur:850; loop:true; dir:alternate; easing:easeInOutSine"
-      data-badge="Awards & Legacy"
-      data-title="International Recognition"
-      data-body="'El abrazo de la serpiente' won the Art Cinema Award (CICAE) at the 2015 Cannes Film Festival and was selected as Colombia's official entry for the Academy Awards. It received an Oscar nomination for Best Foreign Language Film — a historic first for Colombian cinema. Critics praised it as one of the most important Latin American films of the decade."
-      onclick="UIManager.openCard(this)">
-    </a-image>
-
-  </a-entity>
-
-  <!-- ══════════════════════════════════════════════════════════
-       HOTSPOTS — La estrategia del caracol
-  ══════════════════════════════════════════════════════════ -->
-  <a-entity id="hotspots-caracol" visible="false">
-
-    <!-- Front — Synopsis -->
-    <a-image class="hotspot"  src="#hotspot-icon"
-      position="0 1.6 -3.5"  width="0.5" height="0.5"  look-at="[camera]"
-      animation="property:scale; to:1.18 1.18 1.18; dur:900; loop:true; dir:alternate; easing:easeInOutSine"
-      data-badge="Synopsis"
-      data-title="La estrategia del caracol (1993)"
-      data-body="Directed by Sergio Cabrera, this beloved comedy-drama follows the tenants of 'La Casa Uribe,' a colonial house in downtown Bogotá. When a wealthy landlord tries to evict them, they devise an ingenious plan: they dismantle and hide the entire house before the bailiffs arrive. The film is a sharp social commentary wrapped in humor and solidarity."
-      onclick="UIManager.openCard(this)">
-    </a-image>
-
-    <!-- Right — Location -->
-    <a-image class="hotspot"  src="#hotspot-icon"
-      position="3.5 1.6 0"  width="0.5" height="0.5"  look-at="[camera]"
-      animation="property:scale; to:1.18 1.18 1.18; dur:1050; loop:true; dir:alternate; easing:easeInOutSine"
-      data-badge="Location"
-      data-title="La Candelaria: Historic Bogotá"
-      data-body="The film was shot in La Candelaria, the historic downtown neighborhood of Bogotá, known for its colonial architecture, colorful buildings, and cobblestone streets. The 'inquilinato' (a large house divided into rooms rented to multiple families) was a common housing solution for low-income residents in mid-20th century Colombian cities."
-      onclick="UIManager.openCard(this)">
-    </a-image>
-
-    <!-- Left — Social context -->
-    <a-image class="hotspot"  src="#hotspot-icon"
-      position="-3.5 1.6 0"  width="0.5" height="0.5"  look-at="[camera]"
-      animation="property:scale; to:1.18 1.18 1.18; dur:980; loop:true; dir:alternate; easing:easeInOutSine"
-      data-badge="Social Context"
-      data-title="Housing Crisis & Class Struggle"
-      data-body="The film reflects the real housing crises faced by working-class Colombians during the 20th century. Urban migration and economic inequality pushed many families into shared housing. The story critiques the legal system's bias toward property owners and celebrates collective action from below."
-      onclick="UIManager.openCard(this)">
-    </a-image>
-
-    <!-- Behind — Cultural legacy -->
-    <a-image class="hotspot"  src="#hotspot-icon"
-      position="0 1.6 3.5"  width="0.5" height="0.5"  look-at="[camera]"
-      animation="property:scale; to:1.18 1.18 1.18; dur:860; loop:true; dir:alternate; easing:easeInOutSine"
-      data-badge="Cultural Legacy"
-      data-title="A Colombian Classic"
-      data-body="'La estrategia del caracol' became one of the highest-grossing Colombian films of its time and is still considered a cultural touchstone. Its mix of political satire with warm human comedy gave it broad appeal. The film is regularly screened in schools and universities as an example of socially engaged cinema."
-      onclick="UIManager.openCard(this)">
-    </a-image>
-
-  </a-entity>
-
-  <!-- ── CAMERA ─────────────────────────────────────────────── -->
-  <!--
-    FIX: fov="60" (instead of default 80) gives a closer,
-    more immersive feel — like standing inside the scene.
-    look-controls lets the user drag/tilt to explore the 360°.
+    360° sky sphere — single entity, texture set via direct url() on load.
+    Replaces dual/single <a-sky>. Key properties:
+      geometry: sphere r=500, segmentsWidth=64 for smooth panorama
+      material shader:flat — no lighting distortion on equirectangular images
+      side:back — renders texture on the inside of the sphere
+      npot:true — allows non-power-of-two texture sizes (most 360° JPGs)
+    Starts invisible; becomes visible when user selects a scene.
   -->
   <a-entity
-    camera="fov: 50; near: 0.1"
-    look-controls="reverseMouseDrag: false; touchEnabled: true; magicWindowTrackingEnabled: false; pointerLockEnabled: false"
+    id="sky-main"
+    geometry="primitive: sphere; radius: 500; segmentsWidth: 64; segmentsHeight: 32"
+    material="shader: flat; side: back; npot: true; color: #fff"
+    visible="false"
+    rotation="0 -90 0">
+  </a-entity>
+
+  <!-- ══ HOTSPOTS: El abrazo de la serpiente ══════════════════ -->
+  <a-entity id="hotspots-serpiente" visible="false">
+
+    <a-image class="hotspot" src="#hotspot-icon"
+      position="0 1.6 -3.5" width="0.7" height="0.7" look-at="[camera]"
+      animation="property:scale; to:1.2 1.2 1.2; dur:900; loop:true; dir:alternate; easing:easeInOutSine"
+      data-badge="Synopsis"
+      data-title="El abrazo de la serpiente (2015)"
+      data-body="Directed by Ciro Guerra, this black-and-white film follows two parallel journeys through the Colombian Amazon: a German ethnobotanist in 1909 and an American scientist in the 1940s. Both are guided by Karamakate, the last survivor of his tribe, in a search for yakruna, a sacred healing plant. Colombia's first Oscar nomination for Best Foreign Language Film.">
+    </a-image>
+
+    <a-image class="hotspot" src="#hotspot-icon"
+      position="3.5 1.6 0" width="0.7" height="0.7" look-at="[camera]"
+      animation="property:scale; to:1.2 1.2 1.2; dur:1100; loop:true; dir:alternate; easing:easeInOutSine"
+      data-badge="Production"
+      data-title="Black & White: An Artistic Choice"
+      data-body="Ciro Guerra chose black and white to evoke archival photographs of early 20th-century Amazon expeditions. This style creates a timeless quality blurring the line between past and present, myth and reality. Filmed in actual indigenous territories in Colombia and Venezuela.">
+    </a-image>
+
+    <a-image class="hotspot" src="#hotspot-icon"
+      position="-3.5 1.6 0" width="0.7" height="0.7" look-at="[camera]"
+      animation="property:scale; to:1.2 1.2 1.2; dur:950; loop:true; dir:alternate; easing:easeInOutSine"
+      data-badge="Historical Context"
+      data-title="The Rubber Boom & Colonial Violence"
+      data-body="The film depicts the devastating rubber extraction boom that enslaved and massacred Amazonian indigenous communities. Karamakate represents a culture nearly destroyed by colonialism. Western 'scientific' exploration was deeply entangled with exploitation and erasure.">
+    </a-image>
+
+    <a-image class="hotspot" src="#hotspot-icon"
+      position="0 1.6 3.5" width="0.7" height="0.7" look-at="[camera]"
+      animation="property:scale; to:1.2 1.2 1.2; dur:850; loop:true; dir:alternate; easing:easeInOutSine"
+      data-badge="Awards & Legacy"
+      data-title="International Recognition"
+      data-body="Winner of the Art Cinema Award (CICAE) at the 2015 Cannes Film Festival. Selected as Colombia's official entry and received an Oscar nomination for Best Foreign Language Film — a historic first for Colombian cinema.">
+    </a-image>
+
+  </a-entity>
+
+  <!-- ══ HOTSPOTS: La estrategia del caracol ══════════════════ -->
+  <a-entity id="hotspots-caracol" visible="false">
+
+    <a-image class="hotspot" src="#hotspot-icon"
+      position="0 1.6 -3.5" width="0.7" height="0.7" look-at="[camera]"
+      animation="property:scale; to:1.2 1.2 1.2; dur:900; loop:true; dir:alternate; easing:easeInOutSine"
+      data-badge="Synopsis"
+      data-title="La estrategia del caracol (1993)"
+      data-body="Directed by Sergio Cabrera, this beloved comedy-drama follows tenants of 'La Casa Uribe,' a colonial house in Bogotá. When a wealthy landlord tries to evict them, they devise an ingenious plan: dismantle and hide the entire house before the bailiffs arrive. A sharp social commentary wrapped in humor and solidarity.">
+    </a-image>
+
+    <a-image class="hotspot" src="#hotspot-icon"
+      position="3.5 1.6 0" width="0.7" height="0.7" look-at="[camera]"
+      animation="property:scale; to:1.2 1.2 1.2; dur:1050; loop:true; dir:alternate; easing:easeInOutSine"
+      data-badge="Location"
+      data-title="La Candelaria: Historic Bogotá"
+      data-body="Shot in La Candelaria, Bogotá's historic downtown, known for colonial architecture, colorful buildings, and cobblestone streets. The 'inquilinato' — a large house rented room-by-room to multiple families — was a vital but precarious housing form for low-income urban Colombians.">
+    </a-image>
+
+    <a-image class="hotspot" src="#hotspot-icon"
+      position="-3.5 1.6 0" width="0.7" height="0.7" look-at="[camera]"
+      animation="property:scale; to:1.2 1.2 1.2; dur:980; loop:true; dir:alternate; easing:easeInOutSine"
+      data-badge="Social Context"
+      data-title="Housing Crisis & Class Struggle"
+      data-body="The film reflects real housing crises faced by working-class Colombians. Urban migration and inequality pushed families into shared housing. The story critiques the legal system's bias toward property owners and celebrates collective action from below.">
+    </a-image>
+
+    <a-image class="hotspot" src="#hotspot-icon"
+      position="0 1.6 3.5" width="0.7" height="0.7" look-at="[camera]"
+      animation="property:scale; to:1.2 1.2 1.2; dur:860; loop:true; dir:alternate; easing:easeInOutSine"
+      data-badge="Cultural Legacy"
+      data-title="A Colombian Classic"
+      data-body="One of the highest-grossing Colombian films of its time and still a cultural touchstone. Its blend of political satire and warm comedy gave it broad appeal. Regularly screened in schools and universities as an example of socially engaged cinema.">
+    </a-image>
+
+  </a-entity>
+
+  <!--
+    Camera:
+    - fov: 60 for immersive feel (narrower than default 80°)
+    - look-controls: touchEnabled + magicWindowTrackingEnabled for gyroscope
+      AND touch-drag on mobile simultaneously
+    - wasd-controls disabled: prevents accidental position movement (which
+      would take camera outside the sky sphere)
+    - cursor raycaster only targets .hotspot class, far:100 covers the 3.5u distance
+  -->
+  <a-entity
+    camera="fov: 60; near: 0.1"
+    look-controls="touchEnabled: true; magicWindowTrackingEnabled: true; reverseMouseDrag: false; pointerLockEnabled: false"
     wasd-controls="enabled: false"
     position="0 1.6 0">
 
-    <!-- Touch-tap cursor for mobile; gaze-fuse for VR -->
     <a-cursor
-      id="gaze-cursor"
       fuse="false"
       color="#f5c518"
-      opacity="0.9"
+      opacity="0.75"
       raycaster="objects: .hotspot; far: 100"
       animation__click="property:scale; startEvents:click; easing:easeInCubic; dur:120; from:0.1 0.1 0.1; to:1 1 1">
     </a-cursor>
@@ -311,13 +314,17 @@
 
 
 <!-- ═══════════════════════════════════════════════════════════
-     OVERLAYS (all sit above the A-Frame canvas via z-index)
+     OVERLAYS
 ════════════════════════════════════════════════════════════ -->
 
 <!-- Scene Selector -->
 <div id="scene-selector">
   <h1>🎬 Colombian Cinema 360°</h1>
-  <p class="subtitle">Tap a film to step inside its world. Look around to find the interactive hotspots.</p>
+  <p class="subtitle">Tap a film to step into its world. Drag or tilt your phone to look around.</p>
+
+  <div class="audio-notice">
+    🔊 Ambient audio plays automatically when you enter a scene.
+  </div>
 
   <div class="movie-cards">
 
@@ -354,11 +361,11 @@
   </div>
 </div>
 
-<!-- Scene label (top) -->
+<!-- Scene label — pointer-events:none so it never blocks touch on canvas -->
 <div id="scene-label"></div>
 
-<!-- Look-around hint -->
-<div id="look-hint">↔ Look around to find all 4 hotspots</div>
+<!-- Look-around hint — same -->
+<div id="look-hint">👆 Drag to look around · Tap gold icons for info</div>
 
 <!-- HUD controls -->
 <div id="hud">
@@ -368,98 +375,110 @@
 
 
 <!-- ═══════════════════════════════════════════════════════════
-     JAVASCRIPT — UI MANAGER
+     JAVASCRIPT
 ════════════════════════════════════════════════════════════ -->
 <script>
 const UIManager = (() => {
 
-  // DOM refs
-  const sel          = document.getElementById('scene-selector');
-  const infoOverlay  = document.getElementById('info-overlay');
-  const cardBadge    = document.getElementById('card-badge');
-  const cardTitle    = document.getElementById('card-title');
-  const cardBody     = document.getElementById('card-body');
-  const hud          = document.getElementById('hud');
-  const hudAudioBtn  = document.getElementById('hud-audio-btn');
-  const sceneLabel   = document.getElementById('scene-label');
-  const lookHint     = document.getElementById('look-hint');
-  const ambientEnt   = document.getElementById('ambient-sound');
+  const sel         = document.getElementById('scene-selector');
+  const infoOverlay = document.getElementById('info-overlay');
+  const cardBadge   = document.getElementById('card-badge');
+  const cardTitle   = document.getElementById('card-title');
+  const cardBody    = document.getElementById('card-body');
+  const hud         = document.getElementById('hud');
+  const hudAudioBtn = document.getElementById('hud-audio-btn');
+  const sceneLabel  = document.getElementById('scene-label');
+  const lookHint    = document.getElementById('look-hint');
+  const skyMain     = document.getElementById('sky-main');
 
-  // Single sky sphere — src swapped on scene load
-  const skyMain = document.getElementById('sky-main');
-
-  // Image asset IDs by scene
-  const SKY_SRC = {
-    serpiente: '#img-serpiente',
-    caracol:   '#img-caracol',
-  };
-
-  // Hotspot group elements
   const spots = {
     serpiente: document.getElementById('hotspots-serpiente'),
     caracol:   document.getElementById('hotspots-caracol'),
   };
 
-  // Audio sources
-  const AUDIO = {
+  /*
+    Texture swap strategy:
+    - We use direct file paths with url() syntax instead of #asset-id references.
+    - This bypasses A-Frame's asset-management cache, which was causing the wrong
+      texture to persist when switching between scenes. A-Frame's asset system
+      can return a cached WebGL texture for a different ID if timing is off.
+    - Images are still preloaded by <a-assets> so the first load is fast;
+      subsequent setAttribute calls reuse the browser HTTP cache.
+  */
+  const IMG_URL = {
+    serpiente: './assets/img/amazon_360.jpg',
+    caracol:   './assets/img/bogota_360.jpg',
+  };
+
+  /*
+    Audio strategy:
+    - We use the native HTMLAudioElement (new Audio()) instead of A-Frame's
+      sound component (which wraps Web Audio API / AudioContext).
+    - AudioContext.resume() must be called in a user-gesture context. When we
+      use A-Frame's sound component with autoplay:true, the AudioContext may
+      not yet be unlocked even inside a click handler.
+    - HTMLAudioElement.play() called directly in a synchronous click handler
+      is guaranteed to succeed on all browsers (Chrome, Safari, Firefox mobile).
+  */
+  const AUDIO_SRC = {
     serpiente: './assets/audio/amazon_jungle.mp3',
     caracol:   './assets/audio/city_bogota.mp3',
   };
 
   const LABELS = {
-    serpiente: '🐍 El abrazo de la serpiente — Amazon, Colombia',
-    caracol:   '🐌 La estrategia del caracol — Bogotá, Colombia',
+    serpiente: '🐍 El abrazo de la serpiente — Amazon',
+    caracol:   '🐌 La estrategia del caracol — Bogotá',
   };
 
-  let currentScene = null;
+  let currentAudio = null;
   let audioMuted   = false;
-  let audioReady   = false;
 
-  // ── loadScene ────────────────────────────────────────────
+  // ── loadScene ──────────────────────────────────────────────
   function loadScene(name) {
-    currentScene = name;
 
-    // 1. Hide the selector overlay
+    // 1. Hide selector
     sel.classList.add('hidden');
 
-    // 2. Swap sky texture and make it visible
-    skyMain.setAttribute('src', SKY_SRC[name]);
+    // 2. Swap sky texture — full material string with direct url()
+    //    side:back renders texture on inside of sphere
+    //    shader:flat avoids lighting distortion on equirectangular images
+    skyMain.setAttribute('material',
+      `shader: flat; side: back; npot: true; src: url(${IMG_URL[name]})`
+    );
     skyMain.setAttribute('visible', true);
 
-    // 3. Activate the correct hotspot group
+    // 3. Toggle hotspot groups exclusively
     Object.entries(spots).forEach(([key, el]) => {
       el.setAttribute('visible', key === name);
     });
 
-    // 4. Set up audio (swap src, play on first gesture)
-    audioReady = false;
+    // 4. Audio — native HTMLAudioElement, called inside click = no autoplay block
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+    }
+    currentAudio = new Audio(AUDIO_SRC[name]);
+    currentAudio.loop   = true;
+    currentAudio.volume = 0.65;
+    currentAudio.play().catch(() => {
+      // Fallback: attach one-time touchstart listener if browser still blocks
+      const unlock = () => { currentAudio && currentAudio.play().catch(() => {}); };
+      document.addEventListener('touchstart', unlock, { once: true });
+      document.addEventListener('click',      unlock, { once: true });
+    });
     audioMuted = false;
     hudAudioBtn.textContent = '🔊 Mute';
 
-    ambientEnt.setAttribute('sound', `src: url(${AUDIO[name]}); loop: true; volume: 0.55; autoplay: false`);
-
-    // One-time gesture listener to start audio (browser autoplay policy)
-    const startAudio = () => {
-      if (audioReady) return;
-      const sc = ambientEnt.components.sound;
-      if (sc) { sc.playSound(); audioReady = true; }
-      document.removeEventListener('click',      startAudio);
-      document.removeEventListener('touchstart', startAudio);
-    };
-    document.addEventListener('click',      startAudio, { once: true });
-    document.addEventListener('touchstart', startAudio, { once: true });
-
-    // 5. Show HUD + label + hint
+    // 5. Show UI
     hud.classList.add('visible');
     sceneLabel.textContent = LABELS[name];
     sceneLabel.classList.add('visible');
     lookHint.classList.remove('visible');
-    // Trigger reflow so the animation restarts
-    void lookHint.offsetWidth;
+    void lookHint.offsetWidth; // reflow to restart animation
     lookHint.classList.add('visible');
   }
 
-  // ── openCard ─────────────────────────────────────────────
+  // ── openCard ───────────────────────────────────────────────
   function openCard(el) {
     cardBadge.textContent = el.dataset.badge || 'Info';
     cardTitle.textContent = el.dataset.title || '';
@@ -467,51 +486,51 @@ const UIManager = (() => {
     infoOverlay.classList.add('visible');
   }
 
-  // ── closeCard ────────────────────────────────────────────
+  // ── closeCard ──────────────────────────────────────────────
   function closeCard() {
     infoOverlay.classList.remove('visible');
   }
 
-  // ── toggleAudio ──────────────────────────────────────────
+  // ── toggleAudio ────────────────────────────────────────────
   function toggleAudio() {
-    const sc = ambientEnt.components.sound;
-    if (!sc) return;
+    if (!currentAudio) return;
     audioMuted = !audioMuted;
-    audioMuted ? sc.pauseSound() : sc.playSound();
+    currentAudio.muted = audioMuted;
     hudAudioBtn.textContent = audioMuted ? '🔇 Unmute' : '🔊 Mute';
   }
 
-  // ── goToSelector ─────────────────────────────────────────
+  // ── goToSelector ───────────────────────────────────────────
   function goToSelector() {
-    // Stop audio
-    try { ambientEnt.components.sound.stopSound(); } catch (_) {}
-    audioReady = false; audioMuted = false;
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+      currentAudio = null;
+    }
+    audioMuted = false;
     hudAudioBtn.textContent = '🔊 Mute';
-
-    // Hide sky and hotspot groups
     skyMain.setAttribute('visible', false);
     Object.values(spots).forEach(el => el.setAttribute('visible', false));
-
-    // Restore overlay
     sel.classList.remove('hidden');
     hud.classList.remove('visible');
     sceneLabel.classList.remove('visible');
     lookHint.classList.remove('visible');
     infoOverlay.classList.remove('visible');
-    currentScene = null;
   }
 
-  // ── Hotspot click forwarding ──────────────────────────────
-  // A-Frame fires 'click' on the <a-image>; we relay it to openCard.
+  // ── Hotspot click (A-Frame fires 'click' on <a-image> elements) ──
   document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.hotspot').forEach(el => {
       el.addEventListener('click', () => openCard(el));
     });
   });
 
-  // Close card on backdrop click or Escape
-  infoOverlay.addEventListener('click', e => { if (e.target === infoOverlay) closeCard(); });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCard(); });
+  // Close card on backdrop or Escape
+  infoOverlay.addEventListener('click', e => {
+    if (e.target === infoOverlay) closeCard();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeCard();
+  });
 
   return { loadScene, openCard, closeCard, toggleAudio, goToSelector };
 })();
